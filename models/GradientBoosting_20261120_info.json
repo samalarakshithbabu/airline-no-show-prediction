@@ -1,0 +1,76 @@
+{
+  "model_name": "GradientBoosting",
+  "version": "20261120",
+  "feature_names": [
+    "booking_channel",
+    "cabin_class",
+    "ticket_price",
+    "departure_airport",
+    "arrival_airport",
+    "total_bookings",
+    "total_noshows",
+    "total_cancellations",
+    "loyalty_tier",
+    "booking_lead_time",
+    "flight_dayofweek",
+    "flight_month",
+    "flight_day",
+    "flight_quarter",
+    "is_weekend",
+    "is_friday",
+    "is_monday",
+    "is_holiday_period",
+    "is_summer",
+    "is_winter",
+    "historical_noshow_rate",
+    "has_noshow_history",
+    "high_noshow_risk",
+    "has_cancellation_history",
+    "loyalty_tier_encoded",
+    "is_premium_tier",
+    "cabin_class_encoded",
+    "is_premium_cabin",
+    "is_economy",
+    "booking_channel_encoded",
+    "is_direct_booking",
+    "price_vs_average",
+    "is_high_price",
+    "is_low_price",
+    "is_new_passenger",
+    "is_frequent_flyer",
+    "last_minute_booking",
+    "short_notice",
+    "advance_booking",
+    "very_advance",
+    "new_last_minute",
+    "weekend_economy"
+  ],
+  "trained_at": "2026-11-20T19:30:37.638654",
+  "metrics": {
+    "accuracy": 0.6433,
+    "precision": 0.5789,
+    "recall": 0.0507,
+    "f1_score": 0.0932,
+    "roc_auc": 0.5951,
+    "pr_auc": 0.4569,
+    "specificity": 0.9791,
+    "brier_score": 0.2246,
+    "confusion_matrix": [
+      [
+        375,
+        8
+      ],
+      [
+        206,
+        11
+      ]
+    ]
+  },
+  "class_distribution": {
+    "train": {
+      "0": 1914,
+      "1": 1086
+    },
+    "minority_pct": 0.362
+  }
+}

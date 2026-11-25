@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+instance/
+*.db
+*.pkl
+*.sqlite
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+
+# Env
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.qodo/
+.pytest_cache/

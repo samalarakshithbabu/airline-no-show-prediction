@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: airline_noshow_db
+    environment:
+      POSTGRES_USER: ${DB_ADMIN_USER:-airline_admin}
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:?Set DB_ADMIN_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:-airline_noshow}
+      DB_RUNTIME_USER: ${DB_RUNTIME_USER:-airline_runtime}
+      DB_RUNTIME_PASSWORD: ${DB_RUNTIME_PASSWORD:?Set DB_RUNTIME_PASSWORD in .env}
+      DB_MIGRATION_USER: ${DB_MIGRATION_USER:-airline_migrator}
+      DB_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD:?Set DB_MIGRATION_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/00-create-roles.sh:/docker-entrypoint-initdb.d/00-create-roles.sh:ro
+      - ./sql/bootstrap_roles.sql:/docker-entrypoint-initdb.d/00-create-roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_ADMIN_USER:-airline_admin} -d ${DB_NAME:-airline_noshow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrations:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    command: ["python", "backend/migrate.py"]
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_TYPE: postgresql
+      DB_USER: ${DB_MIGRATION_USER:-airline_migrator}
+      DB_PASSWORD: ${DB_MIGRATION_PASSWORD:?Set DB_MIGRATION_PASSWORD in .env}
+      DB_RUNTIME_USER: ${DB_RUNTIME_USER:-airline_runtime}
+      DB_NAME: ${DB_NAME:-airline_noshow}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: airline_noshow_backend
+    environment:
+      FLASK_APP: run.py
+      FLASK_ENV: production
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_TYPE: postgresql
+      DB_USER: ${DB_RUNTIME_USER:-airline_runtime}
+      DB_PASSWORD: ${DB_RUNTIME_PASSWORD:?Set DB_RUNTIME_PASSWORD in .env}
+      DB_NAME: ${DB_NAME:-airline_noshow}
+      RATELIMIT_STORAGE_URI: redis://redis:6379/0
+      TRUSTED_PROXY_HOPS: "1"
+      AUTO_CREATE_SCHEMA: "false"
+      ALLOW_PUBLIC_REGISTRATION: ${ALLOW_PUBLIC_REGISTRATION:-false}
+      MODEL_DIR: /app/models
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      HOST: 0.0.0.0
+      PORT: 5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    volumes:
+      - ./models:/app/models:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_API_URL: /api
+    container_name: airline_noshow_frontend
+    ports:
+      - "127.0.0.1:80:80"
+    environment:
+      API_PROXY_HOST: backend
+      NGINX_ENVSUBST_FILTER: $$API_PROXY_HOST
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: airline_noshow_network
