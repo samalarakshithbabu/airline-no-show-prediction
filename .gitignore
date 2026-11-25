@@ -25,3 +25,5 @@ logs/
 .vscode/
 .qodo/
 .pytest_cache/
+
+*.md
