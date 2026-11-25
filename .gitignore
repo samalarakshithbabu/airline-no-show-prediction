@@ -26,4 +26,6 @@ logs/
 .qodo/
 .pytest_cache/
 
-*.md
+# Docs (excluded)
+dataset-research-report.md
+runtime-validation-report.md
